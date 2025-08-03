@@ -8,6 +8,7 @@
     :root {
       --primary-color: rgba(255, 0, 0, 0.8);
       --shadow-color: rgba(255, 0, 0, 0.7);
+      --grid-color: rgba(255, 255, 255, 0.2);
     }
 
     * {
@@ -137,17 +138,38 @@
       margin-top: 10px;
     }
 
-    .puzzle-container {
+    .puzzle-area {
+      display: flex;
+      gap: 20px;
       width: 100%;
-      min-height: 300px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .puzzle-container {
+      width: 300px;
+      height: 300px;
       position: relative;
-      background: rgba(255,255,255,0.3);
+      background-color: rgba(255,255,255,0.3);
+      border-radius: 15px;
+      display: none;
+      background-image: 
+        linear-gradient(var(--grid-color) 1px, transparent 1px),
+        linear-gradient(90deg, var(--grid-color) 1px, transparent 1px);
+      background-size: 20px 20px;
+    }
+
+    .pieces-container {
+      width: 300px;
+      min-height: 100px;
+      background-color: rgba(255,255,255,0.2);
       border-radius: 15px;
       padding: 10px;
-      display: none;
+      display: flex;
       flex-wrap: wrap;
-      justify-content: center;
       gap: 5px;
+      justify-content: center;
+      align-items: center;
     }
 
     .puzzle-piece {
@@ -249,6 +271,16 @@
         height: 70px;
       }
       
+      .puzzle-area {
+        flex-direction: column;
+      }
+      
+      .puzzle-container, .pieces-container {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 1/1;
+      }
+      
       .compliment {
         font-size: 18px;
         margin: 20px 0 15px;
@@ -290,7 +322,11 @@
       </div>
     </div>
     
-    <div id="puzzleContainer" class="puzzle-container"></div>
+    <div class="puzzle-area">
+      <div id="puzzleContainer" class="puzzle-container"></div>
+      <div id="piecesContainer" class="pieces-container"></div>
+    </div>
+    
     <button class="check-btn" id="checkBtn">Проверить</button>
     <div id="successMessage" class="success-message"></div>
     
@@ -312,6 +348,7 @@
       const startBtn = document.getElementById('startBtn');
       const checkBtn = document.getElementById('checkBtn');
       const puzzleContainer = document.getElementById('puzzleContainer');
+      const piecesContainer = document.getElementById('piecesContainer');
       const difficultySelect = document.getElementById('difficulty');
       const messageModal = document.getElementById('messageModal');
       const successMessage = document.getElementById('successMessage');
@@ -367,14 +404,20 @@
       // Создание пазла
       function createPuzzle(img) {
         puzzleContainer.innerHTML = '';
-        puzzleContainer.style.display = 'flex';
+        piecesContainer.innerHTML = '';
+        puzzleContainer.style.display = 'block';
         checkBtn.style.display = 'block';
         isSolved = false;
         successMessage.style.display = 'none';
         
-        const containerWidth = puzzleContainer.offsetWidth - 20;
-        pieceSize = Math.floor(containerWidth / cols);
-        puzzleContainer.style.height = `${pieceSize * rows + 20}px`;
+        pieceSize = Math.floor(puzzleContainer.offsetWidth / cols);
+        
+        // Устанавливаем размеры контейнеров
+        puzzleContainer.style.width = `${pieceSize * cols}px`;
+        puzzleContainer.style.height = `${pieceSize * rows}px`;
+        
+        // Обновляем сетку
+        puzzleContainer.style.backgroundSize = `${pieceSize}px ${pieceSize}px`;
         
         pieces = [];
         originalPositions = [];
@@ -383,61 +426,56 @@
         canvas.width = pieceSize * cols;
         canvas.height = pieceSize * rows;
         
-        // Создаем массив для хранения позиций
-        const positions = [];
+        // Создаем кусочки
         for (let row = 0; row < rows; row++) {
           for (let col = 0; col < cols; col++) {
-            positions.push({ row, col });
+            const piece = document.createElement('div');
+            piece.className = 'puzzle-piece';
+            piece.style.width = `${pieceSize}px`;
+            piece.style.height = `${pieceSize}px`;
+            
+            const originalX = col * pieceSize;
+            const originalY = row * pieceSize;
+            
+            piece.style.backgroundImage = `url(${img.src})`;
+            piece.style.backgroundPosition = `-${originalX}px -${originalY}px`;
+            piece.style.backgroundSize = `${canvas.width}px ${canvas.height}px`;
+            
+            // Сохраняем оригинальную позицию
+            originalPositions.push({
+              element: piece,
+              originalX,
+              originalY,
+              row,
+              col
+            });
+            
+            // Добавляем обработчики перетаскивания
+            setupDragAndDrop(piece);
+            
+            // Помещаем кусочки в контейнер для кусочков
+            piecesContainer.appendChild(piece);
+            pieces.push(piece);
           }
         }
         
-        // Перемешиваем позиции
-        shuffleArray(positions);
-        
-        // Создаем кусочки в перемешанном порядке
-        positions.forEach((pos, index) => {
-          const piece = document.createElement('div');
-          piece.className = 'puzzle-piece';
-          piece.style.width = `${pieceSize}px`;
-          piece.style.height = `${pieceSize}px`;
-          
-          const originalX = pos.col * pieceSize;
-          const originalY = pos.row * pieceSize;
-          
-          piece.style.backgroundImage = `url(${img.src})`;
-          piece.style.backgroundPosition = `-${originalX}px -${originalY}px`;
-          piece.style.backgroundSize = `${canvas.width}px ${canvas.height}px`;
-          
-          // Сохраняем оригинальную позицию
-          originalPositions.push({
-            element: piece,
-            originalX,
-            originalY,
-            row: pos.row,
-            col: pos.col
-          });
-          
-          // Рандомная позиция для перемешанного пазла
-          const randomX = Math.random() * (puzzleContainer.offsetWidth - pieceSize);
-          const randomY = Math.random() * (puzzleContainer.offsetHeight - pieceSize);
-          
-          piece.style.left = `${randomX}px`;
-          piece.style.top = `${randomY}px`;
-          
-          setupDragAndDrop(piece);
-          
-          puzzleContainer.appendChild(piece);
-          pieces.push(piece);
-        });
+        // Перемешиваем кусочки
+        shufflePieces();
       }
       
-      // Функция для перемешивания массива
-      function shuffleArray(array) {
-        for (let i = array.length - 1; i > 0; i--) {
-          const j = Math.floor(Math.random() * (i + 1));
-          [array[i], array[j]] = [array[j], array[i]];
-        }
-        return array;
+      // Перемешивание кусочков
+      function shufflePieces() {
+        const containerWidth = piecesContainer.offsetWidth - 20;
+        const containerHeight = piecesContainer.offsetHeight - 20;
+        
+        pieces.forEach(piece => {
+          const randomX = Math.random() * (containerWidth - pieceSize);
+          const randomY = Math.random() * (containerHeight - pieceSize);
+          
+          piece.style.position = 'absolute';
+          piece.style.left = `${randomX}px`;
+          piece.style.top = `${randomY}px`;
+        });
       }
       
       // Настройка перетаскивания
@@ -445,6 +483,7 @@
         let isDragging = false;
         let offsetX, offsetY;
         let startX, startY;
+        let startParent;
         
         piece.addEventListener('mousedown', startDrag);
         piece.addEventListener('touchstart', startDrag, { passive: false });
@@ -456,8 +495,9 @@
           const rect = piece.getBoundingClientRect();
           
           // Запоминаем начальные координаты
-          startX = parseFloat(piece.style.left);
-          startY = parseFloat(piece.style.top);
+          startX = parseFloat(piece.style.left) || 0;
+          startY = parseFloat(piece.style.top) || 0;
+          startParent = piece.parentNode;
           
           if (e.type === 'mousedown') {
             offsetX = e.clientX - rect.left;
@@ -472,6 +512,8 @@
             document.addEventListener('touchend', stopDrag);
           }
           
+          // Переносим элемент в body для корректного позиционирования
+          document.body.appendChild(piece);
           piece.style.zIndex = '1000';
           piece.style.cursor = 'grabbing';
         }
@@ -490,14 +532,8 @@
             clientY = e.touches[0].clientY;
           }
           
-          const newX = clientX - offsetX - puzzleContainer.getBoundingClientRect().left;
-          const newY = clientY - offsetY - puzzleContainer.getBoundingClientRect().top;
-          
-          const maxX = puzzleContainer.offsetWidth - piece.offsetWidth;
-          const maxY = puzzleContainer.offsetHeight - piece.offsetHeight;
-          
-          piece.style.left = `${Math.max(0, Math.min(newX, maxX))}px`;
-          piece.style.top = `${Math.max(0, Math.min(newY, maxY))}px`;
+          piece.style.left = `${clientX - offsetX}px`;
+          piece.style.top = `${clientY - offsetY}px`;
         }
         
         function stopDrag() {
@@ -509,79 +545,124 @@
           document.removeEventListener('touchmove', drag);
           document.removeEventListener('touchend', stopDrag);
           
-          // Проверяем, нужно ли возвращать на место
-          if (!checkIfPieceInPlace(piece)) {
-            // Если не на месте, возвращаем на исходную позицию с анимацией
-            piece.style.transition = 'left 0.3s, top 0.3s';
-            piece.style.left = `${startX}px`;
-            piece.style.top = `${startY}px`;
-            
-            setTimeout(() => {
-              piece.style.transition = '';
-            }, 300);
+          // Проверяем, находится ли кусочек над игровым полем
+          const puzzleRect = puzzleContainer.getBoundingClientRect();
+          const pieceRect = piece.getBoundingClientRect();
+          
+          // Проверяем пересечение с игровым полем
+          if (
+            pieceRect.right > puzzleRect.left &&
+            pieceRect.left < puzzleRect.right &&
+            pieceRect.bottom > puzzleRect.top &&
+            pieceRect.top < puzzleRect.bottom
+          ) {
+            // Пытаемся разместить кусочек
+            tryPlacePiece(piece);
+          } else {
+            // Возвращаем на исходное место
+            returnToContainer(piece, startParent, startX, startY);
           }
           
           checkIfPuzzleSolved();
         }
       }
       
-      // Проверка положения кусочка
-      function checkIfPieceInPlace(piece) {
-        const originalPos = originalPositions.find(p => p.element === piece);
-        if (!originalPos) return false;
+      // Попытка разместить кусочек на поле
+      function tryPlacePiece(piece) {
+        const puzzleRect = puzzleContainer.getBoundingClientRect();
+        const pieceRect = piece.getBoundingClientRect();
         
-        const rect = piece.getBoundingClientRect();
-        const containerRect = puzzleContainer.getBoundingClientRect();
+        // Вычисляем относительные координаты
+        const relX = pieceRect.left - puzzleRect.left + pieceSize/2;
+        const relY = pieceRect.top - puzzleRect.top + pieceSize/2;
         
-        const pieceX = rect.left - containerRect.left;
-        const pieceY = rect.top - containerRect.top;
+        // Определяем целевую позицию
+        const targetCol = Math.floor(relX / pieceSize);
+        const targetRow = Math.floor(relY / pieceSize);
         
-        // Проверка с допуском 10 пикселей
-        const xMatch = Math.abs(pieceX - originalPos.originalX) < 10;
-        const yMatch = Math.abs(pieceY - originalPos.originalY) < 10;
-        
-        if (xMatch && yMatch) {
-          // Фиксируем пазл на правильном месте
-          piece.style.left = `${originalPos.originalX}px`;
-          piece.style.top = `${originalPos.originalY}px`;
-          piece.classList.add('in-place');
-          piece.style.zIndex = '1';
+        // Проверяем границы
+        if (targetCol >= 0 && targetCol < cols && targetRow >= 0 && targetRow < rows) {
+          const targetX = targetCol * pieceSize;
+          const targetY = targetRow * pieceSize;
           
-          // Обновляем элемент в массиве
-          const index = pieces.indexOf(piece);
-          if (index !== -1) {
-            const newPiece = piece.cloneNode(true);
-            piece.replaceWith(newPiece);
-            pieces[index] = newPiece;
-            originalPositions.find(p => p.element === piece).element = newPiece;
-            setupDragAndDrop(newPiece);
+          // Находим оригинальную позицию для этого кусочка
+          const originalPos = originalPositions.find(pos => 
+            pos.col === targetCol && pos.row === targetRow
+          );
+          
+          // Проверяем, что кусочек соответствует этой позиции
+          if (originalPos && originalPos.element === piece) {
+            // Правильное место - фиксируем
+            puzzleContainer.appendChild(piece);
+            piece.style.left = `${targetX}px`;
+            piece.style.top = `${targetY}px`;
+            piece.classList.add('in-place');
+            piece.style.zIndex = '1';
+            return true;
           }
-          
-          return true;
         }
+        
+        // Неправильное место - возвращаем
+        returnToContainer(piece, piecesContainer);
         return false;
+      }
+      
+      // Возврат кусочка в контейнер
+      function returnToContainer(piece, container, x = null, y = null) {
+        container.appendChild(piece);
+        piece.style.position = 'absolute';
+        piece.style.zIndex = '';
+        piece.style.cursor = 'grab';
+        
+        if (x !== null && y !== null) {
+          piece.style.left = `${x}px`;
+          piece.style.top = `${y}px`;
+        } else {
+          // Случайная позиция в контейнере
+          const containerWidth = piecesContainer.offsetWidth - pieceSize;
+          const containerHeight = piecesContainer.offsetHeight - pieceSize;
+          
+          piece.style.left = `${Math.random() * containerWidth}px`;
+          piece.style.top = `${Math.random() * containerHeight}px`;
+        }
       }
       
       // Проверка завершения пазла
       function checkIfPuzzleSolved(manualCheck = false) {
         if (isSolved) return true;
         
-        let placedCount = 0;
+        // Считаем правильно размещенные кусочки
+        const placedPieces = puzzleContainer.querySelectorAll('.puzzle-piece');
+        let correctCount = 0;
         
-        pieces.forEach(piece => {
-          if (piece.classList.contains('in-place')) {
-            placedCount++;
+        placedPieces.forEach(piece => {
+          const pieceRect = piece.getBoundingClientRect();
+          const puzzleRect = puzzleContainer.getBoundingClientRect();
+          
+          const relX = pieceRect.left - puzzleRect.left;
+          const relY = pieceRect.top - puzzleRect.top;
+          
+          const col = Math.round(relX / pieceSize);
+          const row = Math.round(relY / pieceSize);
+          
+          // Проверяем, что кусочек на своем месте
+          const originalPos = originalPositions.find(pos => 
+            pos.col === col && pos.row === row
+          );
+          
+          if (originalPos && originalPos.element === piece) {
+            correctCount++;
           }
         });
         
-        if (placedCount === pieces.length) {
+        if (correctCount === pieces.length) {
           isSolved = true;
           showSuccess();
           return true;
         } else if (manualCheck) {
-          successMessage.textContent = placedCount === 0 
+          successMessage.textContent = correctCount === 0 
             ? 'Пока ни один пазл не на месте. Попробуй еще!' 
-            : `Почти получилось! Правильно собрано: ${placedCount} из ${pieces.length}`;
+            : `Почти получилось! Правильно собрано: ${correctCount} из ${pieces.length}`;
           successMessage.style.display = 'block';
           setTimeout(() => {
             successMessage.style.display = 'none';
@@ -604,6 +685,7 @@
       tryOtherBtn.addEventListener('click', () => {
         messageModal.style.display = 'none';
         puzzleContainer.style.display = 'none';
+        piecesContainer.innerHTML = '';
         checkBtn.style.display = 'none';
       });
       
