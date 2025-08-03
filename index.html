@@ -141,7 +141,7 @@
 <body>
   <div id="topText">Собери 8 сердечек: <span id="scoreDisplay">0</span> / 8</div>
   
-  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  <canvas id="gameCanvas" width="300" height="300"></canvas>
   
   <div class="controls">
     <button id="leftBtn" aria-label="Влево">←</button>
@@ -162,7 +162,7 @@
     document.addEventListener('DOMContentLoaded', () => {
       // Константы игры
       const BOX_SIZE = 20;
-      const CANVAS_SIZE = 400;
+      const CANVAS_SIZE = 300;
       const GRID_SIZE = CANVAS_SIZE / BOX_SIZE;
       const WIN_SCORE = 8;
       const GAME_SPEED = 200;
@@ -182,7 +182,7 @@
       const rightBtn = document.getElementById('rightBtn');
       
       // Состояние игры
-      let snake = [{ x: 9 * BOX_SIZE, y: 9 * BOX_SIZE }];
+      let snake = [{ x: 7 * BOX_SIZE, y: 7 * BOX_SIZE }];
       let direction = null;
       let nextDirection = null;
       let gameOver = false;
@@ -281,20 +281,13 @@
         }
       }
       
-      // Проверка столкновений
-      function checkCollision(head, body) {
-        // Столкновение со стеной
-        if (head.x < 0 || head.x >= CANVAS_SIZE || head.y < 0 || head.y >= CANVAS_SIZE) {
-          return true;
-        }
-        
-        // Столкновение с телом
+      // Проверка столкновений с телом
+      function checkBodyCollision(head, body) {
         for (let i = 1; i < body.length; i++) {
           if (head.x === body[i].x && head.y === body[i].y) {
             return true;
           }
         }
-        
         return false;
       }
       
@@ -309,7 +302,6 @@
           if (score >= WIN_SCORE) {
             showModal();
           }
-          drawGameOver();
           return;
         }
         
@@ -339,8 +331,14 @@
           default: return;
         }
         
-        // Проверка столкновений
-        if (checkCollision(head, snake)) {
+        // Бесконечное поле - появляемся с другой стороны
+        if (head.x < 0) head.x = CANVAS_SIZE - BOX_SIZE;
+        if (head.x >= CANVAS_SIZE) head.x = 0;
+        if (head.y < 0) head.y = CANVAS_SIZE - BOX_SIZE;
+        if (head.y >= CANVAS_SIZE) head.y = 0;
+        
+        // Проверка столкновений с телом
+        if (checkBodyCollision(head, snake)) {
           gameOver = true;
           return;
         }
@@ -360,15 +358,6 @@
         }
         
         snake.unshift(head);
-      }
-      
-      // Отрисовка экрана завершения игры
-      function drawGameOver() {
-        ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
-        ctx.fillStyle = 'white';
-        ctx.font = 'bold 30px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText('Игра окончена!', CANVAS_SIZE / 2, CANVAS_SIZE / 2);
       }
       
       // Обработчики событий
