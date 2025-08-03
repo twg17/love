@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Финальная сцена</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Arial', sans-serif;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .final-container {
+      text-align: center;
+      z-index: 10;
+      position: relative;
+    }
+
+    h1 {
+      color: #fff;
+      font-size: 3rem;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+      margin-bottom: 2rem;
+      animation: fadeIn 2s ease-in-out;
+    }
+
+    .message {
+      color: #fff;
+      font-size: 1.5rem;
+      margin-bottom: 2rem;
+      text-shadow: 0 1px 5px rgba(0,0,0,0.2);
+      animation: fadeIn 3s ease-in-out;
+    }
+
+    .hearts-container {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+    }
+
+    .heart {
+      position: absolute;
+      font-size: 2rem;
+      color: rgba(255, 50, 50, 0.8);
+      animation: float 5s ease-in-out infinite;
+      opacity: 0;
+    }
+
+    .restart-btn {
+      background-color: rgba(255, 255, 255, 0.9);
+      color: #ff6b6b;
+      border: none;
+      padding: 15px 30px;
+      font-size: 1.2rem;
+      border-radius: 50px;
+      cursor: pointer;
+      margin-top: 2rem;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      transition: all 0.3s;
+      animation: fadeIn 4s ease-in-out;
+    }
+
+    .restart-btn:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+      background-color: white;
+    }
+
+    @keyframes float {
+      0% {
+        transform: translateY(100vh) rotate(0deg);
+        opacity: 0;
+      }
+      20% {
+        opacity: 1;
+      }
+      80% {
+        opacity: 1;
+      }
+      100% {
+        transform: translateY(-100px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background-color: #f00;
+      opacity: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="hearts-container" id="heartsContainer"></div>
+  
+  <div class="final-container">
+    <h1>Поздравляю!</h1>
+    <p class="message">Ты прошла все задания и собрала все пазлы!<br>Ты просто умничка!</p>
+    <button class="restart-btn" id="restartBtn">Начать заново</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Создаем сердечки
+      function createHearts() {
+        const container = document.getElementById('heartsContainer');
+        const heartSymbols = ['❤️', '💖', '💗', '💓', '💘', '💝'];
+        
+        for (let i = 0; i < 50; i++) {
+          setTimeout(() => {
+            const heart = document.createElement('div');
+            heart.className = 'heart';
+            heart.innerHTML = heartSymbols[Math.floor(Math.random() * heartSymbols.length)];
+            
+            // Случайная позиция по горизонтали
+            heart.style.left = Math.random() * 100 + 'vw';
+            
+            // Случайная задержка анимации
+            heart.style.animationDelay = Math.random() * 5 + 's';
+            
+            // Случайная продолжительность анимации
+            heart.style.animationDuration = 3 + Math.random() * 7 + 's';
+            
+            container.appendChild(heart);
+          }, i * 200);
+        }
+      }
+
+      // Создаем конфетти
+      function createConfetti() {
+        const colors = ['#ff0000', '#ff69b4', '#ff1493', '#ff00ff', '#ff6347'];
+        const container = document.body;
+        
+        for (let i = 0; i < 100; i++) {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+          confetti.style.left = Math.random() * 100 + 'vw';
+          confetti.style.top = -10 + 'px';
+          confetti.style.opacity = '1';
+          confetti.style.transform = 'rotate(' + Math.random() * 360 + 'deg)';
+          
+          // Случайная форма
+          if (Math.random() > 0.5) {
+            confetti.style.borderRadius = '50%';
+          }
+          
+          // Случайный размер
+          const size = Math.random() * 10 + 5;
+          confetti.style.width = size + 'px';
+          confetti.style.height = size + 'px';
+          
+          // Анимация падения
+          const animationDuration = Math.random() * 3 + 2;
+          confetti.style.animation = `fall ${animationDuration}s linear forwards`;
+          
+          // Добавляем ключевые кадры для анимации
+          const style = document.createElement('style');
+          style.innerHTML = `
+            @keyframes fall {
+              to {
+                transform: translateY(100vh) rotate(360deg);
+                opacity: 0;
+              }
+            }
+          `;
+          document.head.appendChild(style);
+          
+          container.appendChild(confetti);
+          
+          // Удаляем конфетти после анимации
+          setTimeout(() => {
+            confetti.remove();
+          }, animationDuration * 1000);
+        }
+      }
+
+      // Кнопка "Начать заново"
+      document.getElementById('restartBtn').addEventListener('click', () => {
+        window.location.href = 'love.html';
+      });
+
+      // Запускаем анимации
+      createHearts();
+      createConfetti();
+      
+      // Повторяем создание конфетти каждые 3 секунды
+      setInterval(createConfetti, 3000);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Игра Змейка со сердечками</title>
+  <style>
+    :root {
+      --primary-color: rgba(255, 0, 0, 0.8);
+      --shadow-color: rgba(255, 0, 0, 0.7);
+      --head-color: #4CAF50;
+      --body-color: #388E3C;
+      --border-color: #2E7D32;
+    }
+
+    body {
+      margin: 0;
+      background: url('love.jpg') no-repeat center center fixed;
+      background-size: cover;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      color: white;
+      position: relative;
+      transition: opacity 0.5s ease;
+    }
+
+    canvas {
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 15px;
+      display: block;
+      margin-bottom: 20px;
+      box-shadow: 0 0 20px var(--shadow-color);
+    }
+
+    .controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      width: 50px;
+      height: 50px;
+      font-size: 24px;
+      font-weight: bold;
+      border-radius: 10px;
+      border: none;
+      background-color: var(--primary-color);
+      color: white;
+      cursor: pointer;
+      box-shadow: 0 0 10px var(--shadow-color);
+      transition: all 0.3s ease;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    button:active {
+      background-color: #d50000;
+      transform: scale(0.95);
+    }
+
+    #topText {
+      position: absolute;
+      top: 20px;
+      font-size: 24px;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 0 5px black;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.6);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .modal-content {
+      background: #222;
+      color: white;
+      padding: 30px 40px;
+      border-radius: 15px;
+      text-align: center;
+      max-width: 350px;
+      box-shadow: 0 0 20px red;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .modal-image {
+      width: 80px;
+      margin-bottom: 20px;
+    }
+
+    .modal-text {
+      font-size: 20px;
+      margin-bottom: 25px;
+    }
+
+    .modal-button {
+      font-size: 20px;
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 10px;
+      cursor: pointer;
+      box-shadow: 0 0 10px red;
+      transition: all 0.3s;
+      width: auto;
+      min-width: 200px;
+    }
+
+    .modal-button:hover {
+      background-color: darkred;
+      transform: scale(1.05);
+    }
+
+    .fade-out {
+      opacity: 0;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+  </style>
+</head>
+<body>
+  <div id="topText">Собери 8 сердечек: <span id="scoreDisplay">0</span> / 8</div>
+  
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  
+  <div class="controls">
+    <button id="leftBtn" aria-label="Влево">←</button>
+    <button id="upBtn" aria-label="Вверх">↑</button>
+    <button id="downBtn" aria-label="Вниз">↓</button>
+    <button id="rightBtn" aria-label="Вправо">→</button>
+  </div>
+  
+  <div id="modal" class="modal">
+    <div class="modal-content">
+      <img src="img/hug.gif" class="modal-image" alt="Поздравление">
+      <p class="modal-text">Да ты мое золотце!</p>
+      <button id="nextBtn" class="modal-button">Перейти к следующему заданию</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Константы игры
+      const BOX_SIZE = 20;
+      const CANVAS_SIZE = 400;
+      const GRID_SIZE = CANVAS_SIZE / BOX_SIZE;
+      const WIN_SCORE = 8;
+      const GAME_SPEED = 200;
+      
+      // Элементы DOM
+      const canvas = document.getElementById('gameCanvas');
+      const ctx = canvas.getContext('2d');
+      const scoreDisplay = document.getElementById('scoreDisplay');
+      const topText = document.getElementById('topText');
+      const modal = document.getElementById('modal');
+      const nextBtn = document.getElementById('nextBtn');
+      
+      // Кнопки управления
+      const leftBtn = document.getElementById('leftBtn');
+      const upBtn = document.getElementById('upBtn');
+      const downBtn = document.getElementById('downBtn');
+      const rightBtn = document.getElementById('rightBtn');
+      
+      // Состояние игры
+      let snake = [{ x: 9 * BOX_SIZE, y: 9 * BOX_SIZE }];
+      let direction = null;
+      let nextDirection = null;
+      let gameOver = false;
+      let score = 0;
+      let heart = { x: 0, y: 0 };
+      
+      // Инициализация игры
+      function initGame() {
+        generateHeartPosition();
+        updateScoreDisplay();
+      }
+      
+      // Генерация позиции сердца
+      function generateHeartPosition() {
+        let newPosition;
+        do {
+          newPosition = {
+            x: Math.floor(Math.random() * GRID_SIZE) * BOX_SIZE,
+            y: Math.floor(Math.random() * GRID_SIZE) * BOX_SIZE
+          };
+        } while (isPositionOnSnake(newPosition));
+        
+        heart = newPosition;
+      }
+      
+      // Проверка позиции на змейке
+      function isPositionOnSnake(position) {
+        return snake.some(part => part.x === position.x && part.y === position.y);
+      }
+      
+      // Обновление отображения счета
+      function updateScoreDisplay() {
+        scoreDisplay.textContent = score;
+      }
+      
+      // Отрисовка сердца
+      function drawHeart(x, y, size) {
+        ctx.fillStyle = 'red';
+        ctx.beginPath();
+        const topCurveHeight = size * 0.3;
+        ctx.moveTo(x + size / 2, y + size / 5);
+        ctx.bezierCurveTo(
+          x + size / 2, y,
+          x, y,
+          x, y + topCurveHeight
+        );
+        ctx.bezierCurveTo(
+          x, y + (size + topCurveHeight) / 2,
+          x + size / 2, y + (size + topCurveHeight) / 1.5,
+          x + size / 2, y + size
+        );
+        ctx.bezierCurveTo(
+          x + size / 2, y + (size + topCurveHeight) / 1.5,
+          x + size, y + (size + topCurveHeight) / 2,
+          x + size, y + topCurveHeight
+        );
+        ctx.bezierCurveTo(
+          x + size, y,
+          x + size / 2, y,
+          x + size / 2, y + size / 5
+        );
+        ctx.closePath();
+        ctx.fill();
+      }
+      
+      // Отрисовка части змейки
+      function drawSnakePart(x, y, isHead = false) {
+        ctx.fillStyle = isHead ? 'var(--head-color)' : 'var(--body-color)';
+        ctx.strokeStyle = 'var(--border-color)';
+        ctx.lineWidth = 2;
+        ctx.fillRect(x, y, BOX_SIZE, BOX_SIZE);
+        ctx.strokeRect(x, y, BOX_SIZE, BOX_SIZE);
+        
+        // Глаза для головы
+        if (isHead) {
+          ctx.fillStyle = 'white';
+          const eyeSize = BOX_SIZE / 5;
+          
+          // Левый глаз
+          ctx.beginPath();
+          ctx.arc(
+            x + BOX_SIZE / 3, 
+            y + BOX_SIZE / 3, 
+            eyeSize, 0, Math.PI * 2
+          );
+          ctx.fill();
+          
+          // Правый глаз
+          ctx.beginPath();
+          ctx.arc(
+            x + BOX_SIZE * 2/3, 
+            y + BOX_SIZE / 3, 
+            eyeSize, 0, Math.PI * 2
+          );
+          ctx.fill();
+        }
+      }
+      
+      // Проверка столкновений
+      function checkCollision(head, body) {
+        // Столкновение со стеной
+        if (head.x < 0 || head.x >= CANVAS_SIZE || head.y < 0 || head.y >= CANVAS_SIZE) {
+          return true;
+        }
+        
+        // Столкновение с телом
+        for (let i = 1; i < body.length; i++) {
+          if (head.x === body[i].x && head.y === body[i].y) {
+            return true;
+          }
+        }
+        
+        return false;
+      }
+      
+      // Показать модальное окно
+      function showModal() {
+        modal.style.display = 'flex';
+      }
+      
+      // Основной игровой цикл
+      function gameLoop() {
+        if (gameOver) {
+          if (score >= WIN_SCORE) {
+            showModal();
+          }
+          drawGameOver();
+          return;
+        }
+        
+        // Очистка холста
+        ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        
+        // Отрисовка элементов
+        drawHeart(heart.x, heart.y, BOX_SIZE);
+        snake.forEach((part, index) => {
+          drawSnakePart(part.x, part.y, index === 0);
+        });
+        
+        // Обновление направления
+        if (nextDirection) {
+          direction = nextDirection;
+          nextDirection = null;
+        }
+        
+        // Перемещение змейки
+        const head = { ...snake[0] };
+        
+        switch (direction) {
+          case 'LEFT': head.x -= BOX_SIZE; break;
+          case 'UP': head.y -= BOX_SIZE; break;
+          case 'RIGHT': head.x += BOX_SIZE; break;
+          case 'DOWN': head.y += BOX_SIZE; break;
+          default: return;
+        }
+        
+        // Проверка столкновений
+        if (checkCollision(head, snake)) {
+          gameOver = true;
+          return;
+        }
+        
+        // Проверка съедения сердца
+        if (head.x === heart.x && head.y === heart.y) {
+          score++;
+          updateScoreDisplay();
+          
+          if (score >= WIN_SCORE) {
+            gameOver = true;
+          } else {
+            generateHeartPosition();
+          }
+        } else {
+          snake.pop();
+        }
+        
+        snake.unshift(head);
+      }
+      
+      // Отрисовка экрана завершения игры
+      function drawGameOver() {
+        ctx.clearRect(0, 0, CANVAS_SIZE, CANVAS_SIZE);
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 30px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillText('Игра окончена!', CANVAS_SIZE / 2, CANVAS_SIZE / 2);
+      }
+      
+      // Обработчики событий
+      function handleKeyDown(e) {
+        switch (e.key) {
+          case 'ArrowLeft':
+            if (direction !== 'RIGHT') nextDirection = 'LEFT';
+            break;
+          case 'ArrowUp':
+            if (direction !== 'DOWN') nextDirection = 'UP';
+            break;
+          case 'ArrowRight':
+            if (direction !== 'LEFT') nextDirection = 'RIGHT';
+            break;
+          case 'ArrowDown':
+            if (direction !== 'UP') nextDirection = 'DOWN';
+            break;
+        }
+      }
+      
+      // Назначение обработчиков
+      document.addEventListener('keydown', handleKeyDown);
+      
+      leftBtn.addEventListener('click', () => { if(direction !== 'RIGHT') nextDirection = 'LEFT'; });
+      upBtn.addEventListener('click', () => { if(direction !== 'DOWN') nextDirection = 'UP'; });
+      downBtn.addEventListener('click', () => { if(direction !== 'UP') nextDirection = 'DOWN'; });
+      rightBtn.addEventListener('click', () => { if(direction !== 'LEFT') nextDirection = 'RIGHT'; });
+      
+      // Обработчик перехода к следующему заданию
+      nextBtn.addEventListener('click', () => {
+        // Сохраняем результат
+        localStorage.setItem('snakeGameScore', score);
+        
+        // Анимация исчезновения
+        document.body.classList.add('fade-out');
+        
+        // Переход через 500мс
+        setTimeout(() => {
+          // Здесь укажите путь к вашему следующему заданию
+          window.location.href = 'next-task.html';
+        }, 500);
+      });
+      
+      // Запуск игры
+      initGame();
+      setInterval(gameLoop, GAME_SPEED);
+    });
+  </script>
+</body>
+</html>

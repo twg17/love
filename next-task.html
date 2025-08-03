@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Игра "Поймай поцелуй"</title>
+  <style>
+    :root {
+      --primary-color: rgba(255, 0, 0, 0.8);
+      --shadow-color: rgba(255, 0, 0, 0.7);
+    }
+
+    * {
+      touch-action: manipulation;
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
+      background-size: 400% 400%;
+      animation: gradient 15s ease infinite;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      user-select: none;
+      color: white;
+      position: relative;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes gradient {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    #gameContainer {
+      width: 90vw;
+      height: 90vw;
+      max-width: 400px;
+      max-height: 400px;
+      background-color: rgba(0, 0, 0, 0.5);
+      border-radius: 15px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 0 20px var(--shadow-color);
+      touch-action: none;
+    }
+
+    .kiss {
+      position: absolute;
+      width: 10vw;
+      height: 10vw;
+      max-width: 40px;
+      max-height: 40px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="red"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>');
+      background-size: contain;
+      background-repeat: no-repeat;
+      cursor: pointer;
+      transition: transform 0.1s;
+      z-index: 10;
+    }
+
+    .trap {
+      position: absolute;
+      width: 10vw;
+      height: 10vw;
+      max-width: 40px;
+      max-height: 40px;
+      background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="black"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>');
+      background-size: contain;
+      background-repeat: no-repeat;
+      z-index: 5;
+    }
+
+    .panel {
+      position: absolute;
+      font-size: 5vw;
+      font-weight: bold;
+      color: white;
+      text-shadow: 0 0 5px black;
+      padding: 2vw;
+      background-color: rgba(0, 0, 0, 0.3);
+      border-radius: 2vw;
+    }
+
+    #scorePanel {
+      top: 2vw;
+      left: 2vw;
+    }
+
+    #timerPanel {
+      top: 2vw;
+      right: 2vw;
+    }
+
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.8);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      flex-direction: column;
+      padding: 5vw;
+    }
+
+    .modal-content {
+      background: #222;
+      color: white;
+      padding: 5vw;
+      border-radius: 3vw;
+      text-align: center;
+      width: 90%;
+      max-width: 400px;
+      box-shadow: 0 0 5vw red;
+    }
+
+    .modal-title {
+      font-size: 6vw;
+      margin-bottom: 3vw;
+    }
+
+    .modal-text {
+      font-size: 5vw;
+      margin-bottom: 5vw;
+    }
+
+    .modal-button {
+      font-size: 4.5vw;
+      background-color: red;
+      color: white;
+      border: none;
+      padding: 3vw 6vw;
+      border-radius: 2vw;
+      cursor: pointer;
+      box-shadow: 0 0 2vw red;
+      transition: all 0.3s;
+      width: 100%;
+      margin: 2vw 0;
+    }
+
+    .modal-button:hover {
+      background-color: darkred;
+    }
+
+    @media (min-width: 768px) {
+      .panel {
+        font-size: 24px;
+      }
+      
+      .modal-title {
+        font-size: 28px;
+      }
+      
+      .modal-text {
+        font-size: 22px;
+      }
+      
+      .modal-button {
+        font-size: 20px;
+        padding: 12px 24px;
+      }
+    }
+
+    #touchArea {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="scorePanel" class="panel">Поцелуи: 0</div>
+  <div id="timerPanel" class="panel">Время: 60</div>
+  
+  <div id="gameContainer">
+    <div id="touchArea"></div>
+  </div>
+  
+  <div id="gameOverModal" class="modal">
+    <div class="modal-content">
+      <h2 class="modal-title">Игра окончена заюшь😘</h2>
+      <p class="modal-text" id="finalScore">Ты поймала: 0 поцелуев</p>
+      <button id="restartButton" class="modal-button">Играть снова</button>
+      <button id="nextGameButton" class="modal-button">Следующая игра</button>
+    </div>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const gameContainer = document.getElementById('gameContainer');
+      const touchArea = document.getElementById('touchArea');
+      const scorePanel = document.getElementById('scorePanel');
+      const timerPanel = document.getElementById('timerPanel');
+      const gameOverModal = document.getElementById('gameOverModal');
+      const finalScore = document.getElementById('finalScore');
+      const restartButton = document.getElementById('restartButton');
+      const nextGameButton = document.getElementById('nextGameButton');
+      
+      let score = 0;
+      let timeLeft = 60;
+      let gameActive = true;
+      let traps = [];
+      let kisses = [];
+      let gameWidth, gameHeight;
+      let kissesSinceLastTrap = 0;
+      let trapInterval;
+      
+      // Инициализация размеров
+      function initSizes() {
+        gameWidth = gameContainer.offsetWidth;
+        gameHeight = gameContainer.offsetHeight;
+      }
+      
+      // Обновление счета
+      function updateScore() {
+        scorePanel.textContent = `Поцелуи: ${score}`;
+        
+        // Увеличиваем счетчик собранных сердечек
+        kissesSinceLastTrap++;
+        
+        // Каждые 2-3 сердечка создаем ловушку
+        if (kissesSinceLastTrap >= 2 + Math.floor(Math.random() * 2)) {
+          createTrap();
+          kissesSinceLastTrap = 0;
+        }
+      }
+      
+      // Обновление таймера
+      function updateTimer() {
+        timerPanel.textContent = `Время: ${timeLeft}`;
+      }
+      
+      // Создание поцелуя
+      function createKiss() {
+        if (!gameActive) return;
+        
+        const kiss = document.createElement('div');
+        kiss.className = 'kiss';
+        
+        // Случайная позиция
+        const x = Math.random() * (gameWidth - kiss.offsetWidth);
+        const y = Math.random() * (gameHeight - kiss.offsetHeight);
+        
+        kiss.style.left = `${x}px`;
+        kiss.style.top = `${y}px`;
+        
+        // Анимация появления
+        kiss.style.transform = 'scale(0)';
+        kiss.style.transition = 'transform 0.3s, opacity 0.3s';
+        
+        gameContainer.appendChild(kiss);
+        
+        setTimeout(() => {
+          kiss.style.transform = 'scale(1)';
+        }, 10);
+        
+        // Обработчик клика
+        kiss.addEventListener('click', handleKissClick);
+        kiss.addEventListener('touchend', handleKissClick, {passive: true});
+        
+        kisses.push(kiss);
+        
+        // Исчезновение через 3-5 секунд
+        setTimeout(() => {
+          if (kiss.parentNode) {
+            removeElement(kiss);
+            kisses = kisses.filter(k => k !== kiss);
+          }
+        }, 3000 + Math.random() * 2000);
+      }
+      
+      function handleKissClick(e) {
+        e.stopPropagation();
+        if (!gameActive) return;
+        
+        const kiss = e.currentTarget;
+        score++;
+        updateScore();
+        
+        // Анимация
+        kiss.style.transform = 'scale(1.5)';
+        kiss.style.opacity = '0';
+        
+        setTimeout(() => {
+          removeElement(kiss);
+        }, 300);
+      }
+      
+      // Создание ловушки
+      function createTrap() {
+        if (!gameActive || traps.length > 3) return; // Не больше 3 ловушек одновременно
+        
+        const trap = document.createElement('div');
+        trap.className = 'trap';
+        
+        // Случайная позиция
+        const x = Math.random() * (gameWidth - trap.offsetWidth);
+        const y = Math.random() * (gameHeight - trap.offsetHeight);
+        
+        trap.style.left = `${x}px`;
+        trap.style.top = `${y}px`;
+        
+        gameContainer.appendChild(trap);
+        
+        // Движение ловушки
+        let xSpeed = (Math.random() - 0.5) * 4;
+        let ySpeed = (Math.random() - 0.5) * 4;
+        
+        const moveTrap = () => {
+          if (!gameActive) return;
+          
+          let newX = parseFloat(trap.style.left) + xSpeed;
+          let newY = parseFloat(trap.style.top) + ySpeed;
+          
+          // Отскок от стен
+          if (newX <= 0 || newX >= gameWidth - trap.offsetWidth) {
+            xSpeed = -xSpeed;
+            newX = parseFloat(trap.style.left) + xSpeed;
+          }
+          
+          if (newY <= 0 || newY >= gameHeight - trap.offsetHeight) {
+            ySpeed = -ySpeed;
+            newY = parseFloat(trap.style.top) + ySpeed;
+          }
+          
+          trap.style.left = `${newX}px`;
+          trap.style.top = `${newY}px`;
+          
+          if (gameActive) {
+            requestAnimationFrame(moveTrap);
+          }
+        };
+        
+        moveTrap();
+        
+        traps.push(trap);
+        
+        // Удаление через 5-7 секунд
+        setTimeout(() => {
+          if (trap.parentNode) {
+            removeElement(trap);
+            traps = traps.filter(t => t !== trap);
+          }
+        }, 5000 + Math.random() * 2000);
+      }
+      
+      // Удаление элемента
+      function removeElement(el) {
+        if (el.parentNode) {
+          el.style.transform = 'scale(0)';
+          el.style.opacity = '0';
+          
+          setTimeout(() => {
+            if (el.parentNode) {
+              el.remove();
+            }
+          }, 300);
+        }
+      }
+      
+      // Проверка столкновений
+      function checkCollisions() {
+        let touchX = 0, touchY = 0;
+        let isTouching = false;
+        
+        // Обработка касаний
+        touchArea.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          const rect = gameContainer.getBoundingClientRect();
+          touchX = e.touches[0].clientX - rect.left;
+          touchY = e.touches[0].clientY - rect.top;
+          isTouching = true;
+          checkTrapCollision(touchX, touchY);
+        });
+        
+        touchArea.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          const rect = gameContainer.getBoundingClientRect();
+          touchX = e.touches[0].clientX - rect.left;
+          touchY = e.touches[0].clientY - rect.top;
+          checkTrapCollision(touchX, touchY);
+        });
+        
+        touchArea.addEventListener('touchend', () => {
+          isTouching = false;
+        });
+        
+        // Обработка мыши
+        touchArea.addEventListener('mousemove', (e) => {
+          if (!isTouching) { // Чтобы не конфликтовало с тачем
+            const rect = gameContainer.getBoundingClientRect();
+            touchX = e.clientX - rect.left;
+            touchY = e.clientY - rect.top;
+            checkTrapCollision(touchX, touchY);
+          }
+        });
+      }
+      
+      function checkTrapCollision(x, y) {
+        if (!gameActive) return;
+        
+        traps.forEach(trap => {
+          const trapRect = trap.getBoundingClientRect();
+          const containerRect = gameContainer.getBoundingClientRect();
+          
+          const trapX = trapRect.left - containerRect.left;
+          const trapY = trapRect.top - containerRect.top;
+          const trapSize = trap.offsetWidth;
+          
+          if (x > trapX && x < trapX + trapSize &&
+              y > trapY && y < trapY + trapSize) {
+            endGame();
+          }
+        });
+      }
+      
+      // Таймер игры
+      function startTimer() {
+        const timer = setInterval(() => {
+          if (!gameActive) {
+            clearInterval(timer);
+            return;
+          }
+          
+          timeLeft--;
+          updateTimer();
+          
+          if (timeLeft <= 0) {
+            endGame();
+            clearInterval(timer);
+          }
+        }, 1000);
+      }
+      
+      // Конец игры
+      function endGame() {
+        gameActive = false;
+        
+        // Удаляем все элементы
+        kisses.forEach(kiss => removeElement(kiss));
+        traps.forEach(trap => removeElement(trap));
+        
+        kisses = [];
+        traps = [];
+        
+        // Показываем результаты
+        finalScore.textContent = `Ты поймала: ${score} поцелуев)`;
+        gameOverModal.style.display = 'flex';
+        
+        // Сохраняем результат
+        localStorage.setItem('kissGameScore', score);
+      }
+      
+      // Начало игры
+      function startGame() {
+        score = 0;
+        timeLeft = 60;
+        gameActive = true;
+        kissesSinceLastTrap = 0;
+        
+        initSizes();
+        updateScore();
+        updateTimer();
+        gameOverModal.style.display = 'none';
+        
+        // Создаем элементы
+        setInterval(createKiss, 800);
+        
+        checkCollisions();
+        startTimer();
+      }
+      
+      // Кнопки
+      restartButton.addEventListener('click', startGame);
+      nextGameButton.addEventListener('click', () => {
+        window.location.href = 'next-game.html'; // Ссылка на игру змейку
+      });
+      
+      // Начинаем игру при загрузке
+      startGame();
+      
+      // Обработка изменения ориентации
+      window.addEventListener('resize', initSizes);
+      window.addEventListener('orientationchange', initSizes);
+    });
+  </script>
+</body>
+</html>
